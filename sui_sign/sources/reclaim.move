@@ -44,14 +44,13 @@ module sui_sign::reclaim {
     }
 
     // Represents a proof
-    public struct Proof has key {
-        id: UID, // Unique identifier for the proof
+    public struct Proof has store, drop{
         claim_info: ClaimInfo, // Claim information
         signed_claim: SignedClaim, // Signed claim
     }
 
     // Represents the Reclaim Manager
-    public struct ReclaimManager has key {
+    public struct ReclaimManager has key, store{
         id: UID, // Unique identifier for the Reclaim Manager
         owner: address, // Address of the Reclaim Manager owner
         epoch_duration_s: u32, // Duration of each epoch in seconds
@@ -92,15 +91,13 @@ module sui_sign::reclaim {
     // Creates a new proof
     public fun create_proof(
         claim_info: ClaimInfo,
-        signed_claim: SignedClaim,
-        ctx: &mut TxContext,
-    ) {
+        signed_claim: SignedClaim
+    ):Proof {
         // Create a new proof object with the provided claim information and signed claim
-        transfer::share_object(Proof {
-            id: object::new(ctx),
+        Proof {
             claim_info,
             signed_claim,
-        })
+        }
     }
 
     // Creates a new epoch

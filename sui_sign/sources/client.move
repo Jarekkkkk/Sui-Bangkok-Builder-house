@@ -28,9 +28,8 @@ module sui_sign::client {
         owner: String,
         epoch: String,
         timestamp: String,
-        signature: vector<u8>,
-        ctx: &mut TxContext
-    ) {
+        signature: vector<u8>
+    ):Proof {
         // create claimInfo
         let claim_info = reclaim::create_claim_info(
             b"http".to_string(),
@@ -56,7 +55,7 @@ module sui_sign::client {
         );
  
         // Create a sharedObj ReclaimManager that wrap the provided claim information and signed claim
-        reclaim::create_proof(claim_info, signed_claim, ctx);
+        reclaim::create_proof(claim_info, signed_claim)
     }
  
     public struct ProofVerified has copy, drop {
