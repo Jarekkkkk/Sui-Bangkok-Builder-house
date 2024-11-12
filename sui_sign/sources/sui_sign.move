@@ -1,7 +1,6 @@
 module sui_sign::sui_sign{
     use std::string::{Self, String};
 
-    use sui::vec_set::{Self, VecSet};
     use sui::vec_map::{Self, VecMap};
     use sui::sui::SUI;
     use sui::coin::{Self, Coin};
@@ -11,12 +10,13 @@ module sui_sign::sui_sign{
     // - walrus
     use walrus::blob::Blob;
     // - suins
-    use suins::suins_registration::{Self, SuinsRegistration};
+    use suins::suins_registration::SuinsRegistration;
     // - reclaim
     use sui_sign::reclaim::{Self, ReclaimManager, Proof};
     use sui_sign::client;
 
     // keys
+    const ADDRESS_KEY:vector<u8> = b"address";
     const SUI_NS_KEY:vector<u8> = b"suins";
     const RECLAIM_KEY:vector<u8> = b"relciam";
 
@@ -24,12 +24,6 @@ module sui_sign::sui_sign{
     const ERR_NON_EXIST_VERIFICATION: u64 = 101;
     const ERR_FAILED_VALIDATION: u64 = 102;
 
-    public struct Admin has key{
-        id: UID,
-        supported_verifications: VecSet<String>
-    }
-
-    public struct AdminKey has key, store{ id: UID }
 
     public struct Document has key, store{
         id: UID,
@@ -38,13 +32,6 @@ module sui_sign::sui_sign{
         expected_proofs: Bag,
         gas: Balance<SUI>,
         signer: Option<address>
-    }
-
-    fun init(ctx: &mut TxContext){
-        transfer::transfer(
-            AdminKey{ id: object::new(ctx) },
-            ctx.sender()
-        );
     }
 
     public fun sponsored_gas(doc: &mut Document, ctx: &mut TxContext): Coin<SUI>{
@@ -66,6 +53,30 @@ module sui_sign::sui_sign{
     }
 
     // -SUI_NS
+    public fun add_wallet_address_validation(
+        doc: &mut Document,
+        verified_address: address
+    ){
+        let key = string::utf8(ADDRESS_KEY);
+        doc.verifications.insert(key, false);
+        doc.expected_proofs.add(key, verified_address);
+    }
+
+    public fun verify_wallet_address(
+        doc: &mut Document,
+        ctx: &TxContext
+    ){
+        let key = string::utf8(ADDRESS_KEY);
+        assert!(doc.verifications.contains(&key), ERR_NON_EXIST_VERIFICATION);
+
+        let expected_address = doc.expected_proofs[key];
+
+        assert!(ctx.sender() == expected_address, ERR_FAILED_VALIDATION);
+
+        *&mut doc.verifications[&key] = true;
+    }
+
+    // -SUI_NS
     public fun add_suins_validation(
         doc: &mut Document,
         verified_name: String
@@ -79,7 +90,7 @@ module sui_sign::sui_sign{
         doc: &mut Document,
         name_service: &SuinsRegistration
     ){
-        let mut key = string::utf8(SUI_NS_KEY);
+        let key = string::utf8(SUI_NS_KEY);
         assert!(doc.verifications.contains(&key), ERR_NON_EXIST_VERIFICATION);
 
         let claimer_name = name_service.domain_name();
@@ -87,7 +98,7 @@ module sui_sign::sui_sign{
 
         assert!(claimer_name == expected_name, ERR_FAILED_VALIDATION);
 
-        *&mut doc.verifications[&mut key] = true;
+        *&mut doc.verifications[&key] = true;
     }
 
     // -Reclaim
@@ -119,15 +130,14 @@ module sui_sign::sui_sign{
         signature: vector<u8>,
         ctx: &mut TxContext
     ){
-        let mut key = string::utf8(RECLAIM_KEY);
+        let key = string::utf8(RECLAIM_KEY);
         assert!(doc.verifications.contains(&key), ERR_NON_EXIST_VERIFICATION);
         
         let manager: &ReclaimManager = &doc.expected_proofs[key];
         let proof = create_proof(parameters, context, identifier, owner, epoch, timestamp, signature);
-        let witness = client::verify_proof(manager, &proof, ctx);
-        assert!(witness == vector[x""], 0);
+        let _witness = client::verify_proof(manager, &proof, ctx);
 
-        *&mut doc.verifications[&mut key] = true;
+        *&mut doc.verifications[&key] = true;
     }
 
     fun create_proof(
@@ -139,7 +149,6 @@ module sui_sign::sui_sign{
         timestamp: String,
         signature: vector<u8>,
     ):Proof {
-        // create claimInfo
         let claim_info = reclaim::create_claim_info(
             b"http".to_string(),
             parameters,
@@ -156,7 +165,6 @@ module sui_sign::sui_sign{
         let mut signatures = vector<vector<u8>>[];
         signatures.push_back(signature);
  
-        // wrapped the 'claim' & 'signature' in SignedClaim struct
         let signed_claim = reclaim::create_signed_claim(
             complete_claim_data,
             signatures
