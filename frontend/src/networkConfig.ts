@@ -7,7 +7,7 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } =
       url: getFullnodeUrl("devnet"),
     },
     testnet: {
-      url: getFullnodeUrl("testnet"),
+      url: "https://sui-testnet-endpoint.blockvision.org",
     },
     mainnet: {
       url: getFullnodeUrl("mainnet"),
