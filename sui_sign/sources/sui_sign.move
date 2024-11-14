@@ -1,6 +1,7 @@
 module sui_sign::sui_sign{
     use std::string::{Self, String};
 
+    use sui::table::{Self, Table};
     use sui::vec_map::{Self, VecMap};
     use sui::sui::SUI;
     use sui::coin::{Self, Coin};
@@ -23,15 +24,43 @@ module sui_sign::sui_sign{
     // error-code
     const ERR_NON_EXIST_VERIFICATION: u64 = 101;
     const ERR_FAILED_VALIDATION: u64 = 102;
+    const ERR_NOT_FULLY_VERIFIED: u64 = 103;
 
+    public struct DocumentInfo has store{
+        blob_id: u256,
+        requester: address,
+        signers: VecMap<address, vector<u8>>,
+    }
+
+    public struct ProofOfSignature has key{
+        id: UID,
+        // Blob id to info
+        signatures: Table<u256, DocumentInfo>
+    }
+
+    public struct SignatureRequest has key{
+        id: UID,
+        blob: Blob
+    }
 
     public struct Document has key, store{
         id: UID,
         requester: address,
+        blob_id: u256,
         verifications: VecMap<String, bool>,
         expected_proofs: Bag,
         gas: Balance<SUI>,
-        signer: Option<address>
+        signer: Option<address>,
+        signature: vector<u8>
+    }
+
+    fun init(ctx: &mut TxContext){
+        transfer::share_object(
+            ProofOfSignature{
+                id: object::new(ctx),
+                signatures: table::new(ctx)
+            }
+        );
     }
 
     public fun sponsored_gas(doc: &mut Document, ctx: &mut TxContext): Coin<SUI>{
@@ -40,17 +69,52 @@ module sui_sign::sui_sign{
 
     public fun init_requested_signature(
         gas: Coin<SUI>,
+        // blob: Blob,
         ctx: &mut TxContext
     ):Document {
+        // let req = SignatureRequest{
+        //     id: object::new(ctx)
+        // };
+        let blob_id = 0;
         Document{
             id: object::new(ctx),
+            blob_id,
             requester: ctx.sender(),
             verifications: vec_map::empty(),
             expected_proofs: bag::new(ctx),
             gas: gas.into_balance(),
-            signer: option::none()
+            signer: option::none(),
+            signature: vector[]
         }
     }
+
+    public fun is_verified(doc: &Document):bool{
+        let keys = doc.verifications.keys();
+        let (mut i, len) = (0, keys.length());
+
+        let mut verified = true;
+        while(i < len){
+            let key = keys[i];
+            let valid = doc.verifications[&key];
+
+            verified = valid && verified;
+
+            i = i + 1;
+        };
+
+        verified
+    }
+
+    public fun sign(
+        doc: &mut Document,
+        ctx: &TxContext
+    ){
+        assert!(doc.is_verified(), ERR_NOT_FULLY_VERIFIED);
+
+
+    }
+
+    // ===== Verification =====
 
     // -SUI_NS
     public fun add_wallet_address_validation(
