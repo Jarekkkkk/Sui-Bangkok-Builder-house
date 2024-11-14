@@ -1,0 +1,11 @@
+[package]
+name = "Walrus"
+edition = "2024.beta"
+published-at = "0x9f992cc2430a1f442ca7a5ca7638169f5d5c00e0ebc3977a65e9ac6e497fe5ef"
+
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/testnet"}
+WAL = { local = "../wal" }
+
+[addresses]
+walrus = "0x9f992cc2430a1f442ca7a5ca7638169f5d5c00e0ebc3977a65e9ac6e497fe5ef"

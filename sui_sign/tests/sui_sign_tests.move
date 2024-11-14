@@ -8,6 +8,8 @@ module sui_sign::sui_sign_tests{
 
     use sui_sign::sui_sign::{Self, Document};
 
+    use walrus::blob;
+
     const ENotImplemented: u64 = 0;
     
     const GAS_REQUIRED_AMT: u64 = 100_000;
@@ -23,7 +25,9 @@ module sui_sign::sui_sign_tests{
         // prepare sig request
         next_tx(s, SENDER);{
             let gas = mint<SUI>(GAS_REQUIRED_AMT, ctx(s));
-            let mut doc = sui_sign::init_requested_signature(gas, ctx(s));
+
+            let blob = blob::new_blob_for_testing(1, ctx(s));
+            let mut doc = sui_sign::init_requested_signature(blob, gas, ctx(s));
             // add verification
             doc.add_wallet_address_validation(RECEIPIENT);
 

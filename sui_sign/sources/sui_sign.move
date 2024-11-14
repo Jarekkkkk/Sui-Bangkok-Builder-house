@@ -68,14 +68,17 @@ module sui_sign::sui_sign{
     }
 
     public fun init_requested_signature(
+        blob: Blob,
         gas: Coin<SUI>,
-        // blob: Blob,
         ctx: &mut TxContext
     ):Document {
-        // let req = SignatureRequest{
-        //     id: object::new(ctx)
-        // };
-        let blob_id = 0;
+        let blob_id = blob.blob_id();
+        let req = SignatureRequest{
+            id: object::new(ctx),
+            blob
+        };
+
+        transfer::transfer(req, ctx.sender());
         Document{
             id: object::new(ctx),
             blob_id,
