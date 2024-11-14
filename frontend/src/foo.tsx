@@ -7,7 +7,7 @@ import {
   useSuiClient,
 } from "@mysten/dapp-kit";
 import { Box, Button, Container, Flex, Heading } from "@radix-ui/themes";
-import { AsyncCache, Transaction } from "@mysten/sui/transactions";
+import { Transaction } from "@mysten/sui/transactions";
 import {
   getSentTransactionsWithLinks,
   ZkSendLinkBuilder,
@@ -16,11 +16,9 @@ import { SUI_TYPE_ARG } from "@mysten/sui/utils";
 import { ChangeEvent, useEffect, useState } from "react";
 import { WALRUS_AGGREGATOR, WALRUS_PUBLISHER } from "./lib/constant";
 import { fileToBlob, streamToBlob } from "./lib/util";
-import { parseZkLoginSignature } from "@mysten/sui/zklogin";
-import { gql, GraphQLClient } from "graphql-request";
-import useVerifyZKLogin from "./components/hooks/useVerifyZKLogin";
 import { useAppContext } from "./components/providers/AppProvider";
 import QRCode from "react-qr-code";
+import useVerifyZKLogin from "./hooks/useVerifyZKLogin";
 
 function App() {
   const { graphQLClient, reclaimRequest } = useAppContext();
