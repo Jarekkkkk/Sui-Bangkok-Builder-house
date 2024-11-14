@@ -26,18 +26,23 @@ export default function useVerifyZKLogin(client: GraphQLClient) {
         }
       `;
 
-      const {
-        verifyZkloginSignature: { success },
-      } = await client.request<{
-        verifyZkloginSignature: { success: boolean };
-      }>(query, {
-        bytes,
-        signature,
-        address,
-      });
+      try {
+        const {
+          verifyZkloginSignature: { success },
+        } = await client.request<{
+          verifyZkloginSignature: { success: boolean };
+        }>(query, {
+          bytes,
+          signature,
+          address,
+        });
 
-      return success;
+        return success;
+      } catch (error: any) {
+        throw new Error(error);
+      }
     },
     onSuccess: () => console.log("success"),
+    onError: (error: Error) => console.error(error),
   });
 }

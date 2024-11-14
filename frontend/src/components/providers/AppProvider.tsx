@@ -5,7 +5,6 @@ import {
   useEffect,
   useState,
 } from "react";
-import { registerStashedWallet } from "@mysten/zksend";
 import { GraphQLClient } from "graphql-request";
 import {
   APP_ID,
@@ -28,8 +27,6 @@ const defaultContextValue: AppContext = {
 const AppContext = createContext<AppContext>(defaultContextValue);
 
 export function AppContextProvider({ children }: PropsWithChildren) {
-  registerStashedWallet("Sui-Sign");
-
   const [reclaimRequest, setReclaimRequest] = useState<ReclaimProofRequest>();
   const graphQLClient = new GraphQLClient(GRAPHQL_ENDPOINT);
   const contextValue = {

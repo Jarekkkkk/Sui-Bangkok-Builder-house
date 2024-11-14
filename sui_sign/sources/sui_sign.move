@@ -30,12 +30,25 @@ module sui_sign::sui_sign{
         requester: address,
         signers: VecMap<address, vector<u8>>,
     }
+    public fun requester(info: &DocumentInfo): address{
+        info.requester
+    }
+    public fun signers(info: &DocumentInfo): VecMap<address, vector<u8>>{
+        info.signers
+    }
 
     /// Shared object to store all signed documents
     public struct ProofOfSignature has key{
         id: UID,
         // Blob id to info
         signatures: Table<u256, DocumentInfo>
+    }
+
+    public fun signature_of_cid(
+        self: &ProofOfSignature,
+        cid: u256
+    ):&DocumentInfo{
+        &self.signatures[cid]
     }
 
     public struct SignatureRequest has key{

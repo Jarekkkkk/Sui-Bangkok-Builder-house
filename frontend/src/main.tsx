@@ -17,7 +17,12 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <Theme appearance="dark">
       <QueryClientProvider client={queryClient}>
         <SuiClientProvider networks={networkConfig} defaultNetwork="testnet">
-          <WalletProvider autoConnect>
+          <WalletProvider
+            stashedWallet={{
+              name: "Sui Sign",
+            }}
+            autoConnect
+          >
             <AppContextProvider>
               <App />
             </AppContextProvider>

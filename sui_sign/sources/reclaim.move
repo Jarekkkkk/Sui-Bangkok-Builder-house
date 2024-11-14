@@ -290,7 +290,6 @@ module sui_sign::reclaim {
                     manager,
                     proof.signed_claim.claim.identifier,
         );
-std::debug::print(&expected_witnesses);
 
         let signed_witnesses = recover_signers_of_signed_claim(signed_claim);
         assert!(!contains_duplicates(&signed_witnesses, ctx), 0); // Contains duplicate signatures
@@ -305,6 +304,8 @@ std::debug::print(&expected_witnesses);
         };
         // Check if all signed witnesses are in the expected witnesses table
         i = 0;
+       std::debug::print(&expected_witnesses); 
+       std::debug::print(&signed_witnesses); 
         while (i < vector::length(&signed_witnesses)) {
             assert!(table::remove(&mut expected_witnesses_table, *vector::borrow(&signed_witnesses, i)), 0); // Signature not appropriate
             i = i + 1;
@@ -453,7 +454,6 @@ std::debug::print(&expected_witnesses);
         let mut complete_claim_data_padding = signed_claim.claim.timestamp_s;
         complete_claim_data_padding.append(endl);
         complete_claim_data_padding.append(signed_claim.claim.epoch);
-std::debug::print(&signed_claim);
         message.append(signed_claim.claim.identifier);
         message.append(endl);
         message.append(signed_claim.claim.owner);
