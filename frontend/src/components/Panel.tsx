@@ -9,38 +9,27 @@ import { TooltipProvider } from "./ui/tooltip";
 import { cn } from "@/lib/utils";
 import { AccountSwitcher } from "./account-switcher";
 import { Separator } from "./ui/separator";
-import {
-  Archive,
-  ArchiveX,
-  Inbox,
-  Send,
-  Trash2,
-  File,
-  Search,
-} from "lucide-react";
+import { File, Search, Signature, Stamp } from "lucide-react";
 import { Nav } from "./nav";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Input } from "./ui/input";
 import Display from "./display";
 
 interface MailProps {
-  accounts: {
-    label: string;
-    email: string;
-    icon: React.ReactNode;
-  }[];
   defaultLayout: number[] | undefined;
   defaultCollapsed?: boolean;
   navCollapsedSize: number;
 }
 
+export type Action = "Upload" | "Sign" | "Verify";
+
 export default function Panel({
-  accounts,
   defaultLayout = [20, 32, 48],
   defaultCollapsed = false,
   navCollapsedSize,
 }: MailProps) {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+  const [action, setAction] = useState<Action>("Upload");
   return (
     <TooltipProvider delayDuration={0}>
       <ResizablePanelGroup
@@ -76,47 +65,28 @@ export default function Panel({
               isCollapsed ? "h-[52px]" : "px-2",
             )}
           >
-            <AccountSwitcher isCollapsed={isCollapsed} accounts={accounts} />
+            <AccountSwitcher />
           </div>
           <Separator />
           <Nav
             isCollapsed={isCollapsed}
+            action={action}
+            setAction={setAction}
             links={[
               {
-                title: "Inbox",
-                label: "128",
-                icon: Inbox,
-                variant: "default",
-              },
-              {
-                title: "Drafts",
-                label: "9",
+                title: "Upload",
+                label: "",
                 icon: File,
-                variant: "ghost",
               },
               {
-                title: "Sent",
+                title: "Sign",
                 label: "",
-                icon: Send,
-                variant: "ghost",
+                icon: Signature,
               },
               {
-                title: "Junk",
-                label: "23",
-                icon: ArchiveX,
-                variant: "ghost",
-              },
-              {
-                title: "Trash",
+                title: "Verify",
                 label: "",
-                icon: Trash2,
-                variant: "ghost",
-              },
-              {
-                title: "Archive",
-                label: "",
-                icon: Archive,
-                variant: "ghost",
+                icon: Stamp,
               },
             ]}
           />
@@ -125,19 +95,19 @@ export default function Panel({
         <ResizablePanel defaultSize={defaultLayout[1]} minSize={30}>
           <Tabs defaultValue="all">
             <div className="flex items-center px-4 py-2">
-              <h1 className="text-xl font-bold">Inbox</h1>
+              <h1 className="text-xl font-bold">Files</h1>
               <TabsList className="ml-auto">
                 <TabsTrigger
                   value="all"
                   className="text-zinc-600 dark:text-zinc-200"
                 >
-                  All mail
+                  All files
                 </TabsTrigger>
                 <TabsTrigger
                   value="unread"
                   className="text-zinc-600 dark:text-zinc-200"
                 >
-                  Unread
+                  Unsigned
                 </TabsTrigger>
               </TabsList>
             </div>
