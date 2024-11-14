@@ -1,7 +1,6 @@
 import { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { buttonVariants } from "./ui/button";
 import { Action } from "./Panel";
 import { Dispatch, SetStateAction } from "react";
