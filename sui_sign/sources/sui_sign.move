@@ -27,11 +27,11 @@ module sui_sign::sui_sign{
     const ERR_NOT_FULLY_VERIFIED: u64 = 103;
 
     public struct DocumentInfo has store{
-        blob_id: u256,
         requester: address,
         signers: VecMap<address, vector<u8>>,
     }
 
+    /// Shared object to store all signed documents
     public struct ProofOfSignature has key{
         id: UID,
         // Blob id to info
@@ -49,9 +49,7 @@ module sui_sign::sui_sign{
         blob_id: u256,
         verifications: VecMap<String, bool>,
         expected_proofs: Bag,
-        gas: Balance<SUI>,
-        signer: Option<address>,
-        signature: vector<u8>
+        gas: Balance<SUI>
     }
 
     fun init(ctx: &mut TxContext){
@@ -62,12 +60,17 @@ module sui_sign::sui_sign{
             }
         );
     }
+    #[test_only]
+    public fun init_for_testing(ctx: &mut TxContext){
+        init(ctx);
+    }
 
     public fun sponsored_gas(doc: &mut Document, ctx: &mut TxContext): Coin<SUI>{
         coin::from_balance(doc.gas.withdraw_all(), ctx)
     }
 
     public fun init_requested_signature(
+        self: &mut ProofOfSignature,
         blob: Blob,
         gas: Coin<SUI>,
         ctx: &mut TxContext
@@ -77,18 +80,39 @@ module sui_sign::sui_sign{
             id: object::new(ctx),
             blob
         };
-
         transfer::transfer(req, ctx.sender());
+
+        self.signatures.add(
+            blob_id, 
+            DocumentInfo{
+                requester: ctx.sender(),
+                signers: vec_map::empty()
+            }
+        );
+
         Document{
             id: object::new(ctx),
-            blob_id,
             requester: ctx.sender(),
+            blob_id,
             verifications: vec_map::empty(),
             expected_proofs: bag::new(ctx),
             gas: gas.into_balance(),
-            signer: option::none(),
-            signature: vector[]
         }
+    }
+
+    public fun remove_signature(
+        self: &mut ProofOfSignature,
+        request: SignatureRequest,
+        ctx: &TxContext
+    ){
+        let SignatureRequest{
+            id,
+            blob
+        } = request;
+
+        object::delete(id);
+
+        transfer::public_transfer(blob, ctx.sender());
     }
 
     public fun is_verified(doc: &Document):bool{
@@ -108,13 +132,31 @@ module sui_sign::sui_sign{
         verified
     }
 
+    #[allow(lint(self_transfer))]
     public fun sign(
-        doc: &mut Document,
-        ctx: &TxContext
+        self: &mut ProofOfSignature,
+        doc: Document,
+        signature: vector<u8>,
+        ctx: &mut TxContext
     ){
         assert!(doc.is_verified(), ERR_NOT_FULLY_VERIFIED);
 
+        let Document{
+            id,
+            requester: _,
+            blob_id,
+            verifications: _,
+            expected_proofs,
+            gas,
+        } = doc;
 
+        object::delete(id);
+        expected_proofs.destroy_empty();
+
+        let info = &mut self.signatures[blob_id];
+        info.signers.insert(ctx.sender(), signature);
+
+        transfer::public_transfer(coin::from_balance(gas, ctx), info.requester);
     }
 
     // ===== Verification =====
@@ -136,7 +178,7 @@ module sui_sign::sui_sign{
         let key = string::utf8(ADDRESS_KEY);
         assert!(doc.verifications.contains(&key), ERR_NON_EXIST_VERIFICATION);
 
-        let expected_address = doc.expected_proofs[key];
+        let expected_address = doc.expected_proofs.remove(key);
 
         assert!(ctx.sender() == expected_address, ERR_FAILED_VALIDATION);
 
@@ -161,7 +203,7 @@ module sui_sign::sui_sign{
         assert!(doc.verifications.contains(&key), ERR_NON_EXIST_VERIFICATION);
 
         let claimer_name = name_service.domain_name();
-        let expected_name = doc.expected_proofs[key];
+        let expected_name = doc.expected_proofs.remove(key);
 
         assert!(claimer_name == expected_name, ERR_FAILED_VALIDATION);
 
@@ -200,9 +242,11 @@ module sui_sign::sui_sign{
         let key = string::utf8(RECLAIM_KEY);
         assert!(doc.verifications.contains(&key), ERR_NON_EXIST_VERIFICATION);
         
-        let manager: &ReclaimManager = &doc.expected_proofs[key];
+        let manager: ReclaimManager = doc.expected_proofs.remove(key);
         let proof = create_proof(parameters, context, identifier, owner, epoch, timestamp, signature);
-        let _witness = client::verify_proof(manager, &proof, ctx);
+        let _witness = client::verify_proof(&manager, &proof, ctx);
+
+        manager.drop_reclaim_manager();
 
         *&mut doc.verifications[&key] = true;
     }

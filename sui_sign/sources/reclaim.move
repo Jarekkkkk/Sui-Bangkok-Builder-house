@@ -13,8 +13,7 @@ module sui_sign::reclaim {
     // }
 
     // Represents an epoch in the system
-    public struct Epoch has key, store {
-        id: UID, // Unique identifier for the epoch
+    public struct Epoch has store, drop{
         epoch_number: u8, // Epoch number
         timestamp_start: u64, // Start timestamp of the epoch
         timestamp_end: u64, // End timestamp of the epoch
@@ -57,8 +56,20 @@ module sui_sign::reclaim {
         current_epoch: u8, // Current epoch number
         epochs: vector<Epoch>, // List of epochs
         // created_groups: Table<vector<u8>, bool>, // Table to store created groups
-        merkelized_user_params: Table<vector<u8>, bool>, // Table to store merkelized user parameters
-        dapp_id_to_external_nullifier: Table<vector<u8>, vector<u8>>, // Table to map dapp IDs to external nullifiers
+        // merkelized_user_params: Table<vector<u8>, bool>, // Table to store merkelized user parameters
+        // dapp_id_to_external_nullifier: Table<vector<u8>, vector<u8>>, // Table to map dapp IDs to external nullifiers
+    }
+
+    public fun drop_reclaim_manager(manager: ReclaimManager){
+        let ReclaimManager{
+            id,
+            owner: _,
+            epoch_duration_s: _,
+            current_epoch: _,
+            epochs: _
+        } = manager;
+
+        object::delete(id);
     }
 
     // Creates a new claim info
@@ -107,11 +118,9 @@ module sui_sign::reclaim {
         timestamp_end: u64,
         witnesses: vector<vector<u8>>, // List of witnesses
         minimum_witnesses_for_claim_creation: u128,
-        ctx: &mut TxContext,
     ): Epoch {
         // Create a new epoch object with the provided epoch details
         Epoch {
-            id: object::new(ctx),
             epoch_number,
             timestamp_start,
             timestamp_end,
@@ -133,8 +142,8 @@ module sui_sign::reclaim {
             current_epoch: 0,
             epochs: vector::empty(),
             // created_groups: table::new(ctx),
-            merkelized_user_params: table::new(ctx),
-            dapp_id_to_external_nullifier: table::new(ctx),
+            // merkelized_user_params: table::new(ctx),
+            // dapp_id_to_external_nullifier: table::new(ctx),
         }
     }
 
@@ -161,7 +170,6 @@ module sui_sign::reclaim {
             timestamp_end,
             witnesses,
             requisite_witnesses_for_claim_create,
-            ctx,
         );
         vector::push_back(&mut manager.epochs, new_epoch);
         manager.current_epoch = epoch_number;
@@ -169,31 +177,31 @@ module sui_sign::reclaim {
     }
 
     // Creates a new Dapp
-    public fun create_dapp(manager: &mut ReclaimManager, id: vector<u8>, ctx: &mut TxContext) {
-        let sender_address = tx_context::sender(ctx);
-        let mut combined = vector::empty<u8>();
-        
-        // Append sender address bytes
-        let sender_bytes = bcs::to_bytes(&sender_address);
-        let mut i = 0;
-        while (i < vector::length(&sender_bytes)) {
-            vector::push_back(&mut combined, *vector::borrow(&sender_bytes, i));
-            i = i + 1;
-        };
-        
-        // Append id bytes
-        i = 0;
-        while (i < vector::length(&id)) {
-            vector::push_back(&mut combined, *vector::borrow(&id, i));
-            i = i + 1;
-        };
-
-        // Generate the dapp_id using keccak256 hash
-        let dapp_id = hash::keccak256(&combined);
-        assert!(!table::contains(&manager.dapp_id_to_external_nullifier, dapp_id), 0);
-        table::add(&mut manager.dapp_id_to_external_nullifier, dapp_id, id);
-        // event::emit(DappCreated { dapp_id });
-    }
+    // public fun create_dapp(manager: &mut ReclaimManager, id: vector<u8>, ctx: &mut TxContext) {
+    //     let sender_address = tx_context::sender(ctx);
+    //     let mut combined = vector::empty<u8>();
+    //     
+    //     // Append sender address bytes
+    //     let sender_bytes = bcs::to_bytes(&sender_address);
+    //     let mut i = 0;
+    //     while (i < vector::length(&sender_bytes)) {
+    //         vector::push_back(&mut combined, *vector::borrow(&sender_bytes, i));
+    //         i = i + 1;
+    //     };
+    //     
+    //     // Append id bytes
+    //     i = 0;
+    //     while (i < vector::length(&id)) {
+    //         vector::push_back(&mut combined, *vector::borrow(&id, i));
+    //         i = i + 1;
+    //     };
+    //
+    //     // Generate the dapp_id using keccak256 hash
+    //     let dapp_id = hash::keccak256(&combined);
+    //     assert!(!table::contains(&manager.dapp_id_to_external_nullifier, dapp_id), 0);
+    //     table::add(&mut manager.dapp_id_to_external_nullifier, dapp_id, id);
+    //     // event::emit(DappCreated { dapp_id });
+    // }
 
 
     // Gets the provider name from the proof
@@ -202,10 +210,10 @@ module sui_sign::reclaim {
     }
 
     // Checks if the merkellized user params exist
-    public fun has_merkellized_user_params(manager: &ReclaimManager, provider: string::String, params: string::String): bool {
-        let user_params_hash = hash_user_params(provider, params);
-        table::contains(&manager.merkelized_user_params, user_params_hash)
-    }
+    // public fun has_merkellized_user_params(manager: &ReclaimManager, provider: string::String, params: string::String): bool {
+    //     let user_params_hash = hash_user_params(provider, params);
+    //     table::contains(&manager.merkelized_user_params, user_params_hash)
+    // }
 
     // Extracts a field from the context
     // // @TODO: Test for providerHash utility

@@ -6,7 +6,7 @@ module sui_sign::sui_sign_tests{
     use sui::sui::SUI;
     use sui::coin::{mint_for_testing as mint, burn_for_testing as burn};
 
-    use sui_sign::sui_sign::{Self, Document};
+    use sui_sign::sui_sign::{Self, Document, ProofOfSignature};
 
     use walrus::blob;
 
@@ -22,16 +22,23 @@ module sui_sign::sui_sign_tests{
         let mut scenario = test::begin(SENDER);
         let s = &mut scenario;
 
+        next_tx(s, SENDER);{
+            sui_sign::init_for_testing(ctx(s));
+        };
+
         // prepare sig request
         next_tx(s, SENDER);{
+            let mut pos = test::take_shared<ProofOfSignature>(s);
             let gas = mint<SUI>(GAS_REQUIRED_AMT, ctx(s));
 
             let blob = blob::new_blob_for_testing(1, ctx(s));
-            let mut doc = sui_sign::init_requested_signature(blob, gas, ctx(s));
+            let mut doc = sui_sign::init_requested_signature(&mut pos, blob, gas, ctx(s));
             // add verification
             doc.add_wallet_address_validation(RECEIPIENT);
 
             transfer::public_transfer(doc, RECEIPIENT);
+
+            test::return_shared(pos);
         };
 
         next_tx(s, RECEIPIENT);{
